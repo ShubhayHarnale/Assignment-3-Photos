@@ -12,6 +12,7 @@ public class PhotoLibrary {
 
     public PhotoLibrary() {
         this.users = new ArrayList<>();
+        users.add(new User(STOCK_USERNAME));
     }
 
     public List<User> getUsers() {
@@ -39,7 +40,9 @@ public class PhotoLibrary {
         }
 
         String username = user.getUsername();
-        if (username.equalsIgnoreCase(ADMIN_USERNAME) || hasUser(username)) {
+        if (username.equalsIgnoreCase(ADMIN_USERNAME)
+                || username.equalsIgnoreCase(STOCK_USERNAME)
+                || hasUser(username)) {
             return false;
         }
 
