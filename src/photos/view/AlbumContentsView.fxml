@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="photos.controller.AlbumContentsController">
+    <top>
+        <VBox spacing="8.0">
+            <padding>
+                <Insets top="20.0" right="24.0" bottom="12.0" left="24.0" />
+            </padding>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Button mnemonicParsing="false" onAction="#handleBackToAlbums" text="Back to Albums" />
+                <Label fx:id="albumTitleLabel" style="-fx-font-size: 24px; -fx-font-weight: bold;" text="Album" />
+            </HBox>
+            <Label fx:id="albumSubtitleLabel" text=" " wrapText="true" />
+            <Separator />
+        </VBox>
+    </top>
+
+    <center>
+        <HBox spacing="18.0">
+            <padding>
+                <Insets top="8.0" right="24.0" bottom="24.0" left="24.0" />
+            </padding>
+
+            <VBox spacing="12.0" prefWidth="280.0">
+                <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Photos" />
+                <ListView fx:id="photosListView" prefHeight="320.0" VBox.vgrow="ALWAYS" />
+                <HBox spacing="10.0">
+                    <Button mnemonicParsing="false" onAction="#handlePreviousPhoto" text="Previous" />
+                    <Button mnemonicParsing="false" onAction="#handleNextPhoto" text="Next" />
+                </HBox>
+                <HBox spacing="10.0">
+                    <Button mnemonicParsing="false" onAction="#handleAddPhoto" text="Add Photo" />
+                    <Button mnemonicParsing="false" onAction="#handleRemovePhoto" text="Remove Photo" />
+                </HBox>
+                <HBox spacing="10.0">
+                    <Button mnemonicParsing="false" onAction="#handleCopyPhoto" text="Copy Photo" />
+                    <Button mnemonicParsing="false" onAction="#handleMovePhoto" text="Move Photo" />
+                </HBox>
+            </VBox>
+
+            <VBox spacing="14.0" HBox.hgrow="ALWAYS">
+                <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Selected Photo Preview" />
+                <StackPane fx:id="previewPane" prefHeight="220.0" style="-fx-background-color: #f8fafc; -fx-border-color: #d1d5db; -fx-border-radius: 16; -fx-background-radius: 16;" />
+                <Label fx:id="previewTitleLabel" style="-fx-font-size: 18px; -fx-font-weight: bold;" text="No photo selected" />
+
+                <VBox spacing="10.0" style="-fx-background-color: #f8fafc; -fx-border-color: #e5e7eb; -fx-border-radius: 12; -fx-background-radius: 12; -fx-padding: 16;">
+                    <Label style="-fx-font-size: 15px; -fx-font-weight: bold;" text="Details" />
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-weight: bold;" text="Caption" />
+                        <Label fx:id="captionValueLabel" text="-" wrapText="true" />
+                    </VBox>
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-weight: bold;" text="Date Taken" />
+                        <Label fx:id="dateValueLabel" text="-" />
+                    </VBox>
+                    <VBox spacing="6.0">
+                        <Label style="-fx-font-weight: bold;" text="Tags" />
+                        <Label fx:id="tagsValueLabel" text="-" wrapText="true" />
+                    </VBox>
+                </VBox>
+
+                <Label fx:id="previewStatusLabel" style="-fx-text-fill: #4b5563;" text="Select a sample photo to preview details." wrapText="true" />
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>

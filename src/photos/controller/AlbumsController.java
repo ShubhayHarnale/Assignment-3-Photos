@@ -18,6 +18,7 @@ import java.util.Optional;
  */
 public class AlbumsController {
     private Photos app;
+    private String currentUsername;
 
     @FXML
     private Label headingLabel;
@@ -54,6 +55,7 @@ public class AlbumsController {
     }
 
     public void setUsername(String username) {
+        currentUsername = username;
         if ("stock".equalsIgnoreCase(username)) {
             headingLabel.setText("Welcome, stock");
             subtitleLabel.setText("Stock user UI preview only. Album management dialogs are placeholders in this milestone.");
@@ -118,8 +120,11 @@ public class AlbumsController {
             return;
         }
 
-        showPlaceholderMessage("Open Album", "UI preview only. The album contents screen for '"
-                + extractAlbumName(selectedAlbum) + "' belongs to the next UI milestone.");
+        try {
+            app.showAlbumContentsView(currentUsername, extractAlbumName(selectedAlbum));
+        } catch (IOException exception) {
+            showPlaceholderMessage("Open Album", "Unable to load the album contents screen.");
+        }
     }
 
     @FXML

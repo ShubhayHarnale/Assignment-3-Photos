@@ -6,6 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import photos.controller.AdminController;
+import photos.controller.AlbumContentsController;
 import photos.controller.AlbumsController;
 import photos.controller.LoginController;
 
@@ -15,8 +16,10 @@ import java.io.IOException;
  * JavaFX entry point for the Photos application.
  */
 public class Photos extends Application {
-    private static final double WINDOW_WIDTH = 860;
-    private static final double WINDOW_HEIGHT = 560;
+    private static final double DEFAULT_WINDOW_WIDTH = 860;
+    private static final double DEFAULT_WINDOW_HEIGHT = 560;
+    private static final double ALBUM_WINDOW_WIDTH = 980;
+    private static final double ALBUM_WINDOW_HEIGHT = 720;
 
     private Stage primaryStage;
 
@@ -41,8 +44,7 @@ public class Photos extends Application {
         LoginController controller = loader.getController();
         controller.setApp(this);
 
-        primaryStage.setTitle("Photos - Login");
-        primaryStage.setScene(new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT));
+        showScene(root, "Photos - Login", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 760, 500);
     }
 
     public void showAdminView() throws IOException {
@@ -52,8 +54,7 @@ public class Photos extends Application {
         AdminController controller = loader.getController();
         controller.setApp(this);
 
-        primaryStage.setTitle("Photos - Admin");
-        primaryStage.setScene(new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT));
+        showScene(root, "Photos - Admin", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 760, 500);
     }
 
     public void showAlbumsView(String username) throws IOException {
@@ -64,11 +65,29 @@ public class Photos extends Application {
         controller.setApp(this);
         controller.setUsername(username);
 
-        primaryStage.setTitle("Photos - User Albums");
-        primaryStage.setScene(new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT));
+        showScene(root, "Photos - User Albums", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 760, 500);
+    }
+
+    public void showAlbumContentsView(String username, String albumName) throws IOException {
+        FXMLLoader loader = createLoader("view/AlbumContentsView.fxml");
+        Parent root = loader.load();
+
+        AlbumContentsController controller = loader.getController();
+        controller.setApp(this);
+        controller.setContext(username, albumName);
+
+        showScene(root, "Photos - Album Contents", ALBUM_WINDOW_WIDTH, ALBUM_WINDOW_HEIGHT, 900, 640);
     }
 
     private FXMLLoader createLoader(String resourcePath) {
         return new FXMLLoader(Photos.class.getResource(resourcePath));
+    }
+
+    private void showScene(Parent root, String title, double width, double height, double minWidth, double minHeight) {
+        primaryStage.setTitle(title);
+        primaryStage.setMinWidth(minWidth);
+        primaryStage.setMinHeight(minHeight);
+        primaryStage.setScene(new Scene(root, width, height));
+        primaryStage.sizeToScene();
     }
 }
