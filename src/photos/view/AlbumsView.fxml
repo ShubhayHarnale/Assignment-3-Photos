@@ -42,11 +42,13 @@
                 <Region HBox.hgrow="ALWAYS" />
                 <Button mnemonicParsing="false" onAction="#handleSearch" text="Search" />
             </HBox>
-            <ListView prefHeight="320.0" VBox.vgrow="ALWAYS">
+            <Label fx:id="selectionLabel" style="-fx-text-fill: #4b5563;" text="Select a sample album to preview create/rename/delete/open flows." wrapText="true" />
+            <ListView fx:id="albumsListView" prefHeight="320.0" VBox.vgrow="ALWAYS">
                 <items>
                     <FXCollections fx:factory="observableArrayList">
                         <String fx:value="Family Trip | 12 photos | Jan 3, 2026 - Jan 9, 2026" />
                         <String fx:value="Favorites | 0 photos | No photos" />
+                        <String fx:value="Weekend Ideas | 4 photos | Mar 12, 2026 - Mar 14, 2026" />
                     </FXCollections>
                 </items>
             </ListView>

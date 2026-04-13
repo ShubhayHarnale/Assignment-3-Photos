@@ -3,9 +3,15 @@ package photos.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.VBox;
 import photos.Photos;
 
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Controller for the user albums UI placeholder screen.
@@ -19,39 +25,101 @@ public class AlbumsController {
     @FXML
     private Label subtitleLabel;
 
+    @FXML
+    private Label selectionLabel;
+
+    @FXML
+    private ListView<String> albumsListView;
+
     public void setApp(Photos app) {
         this.app = app;
+    }
+
+    @FXML
+    private void initialize() {
+        albumsListView.setCellFactory(listView -> new AlbumSummaryCell());
+        albumsListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null) {
+                selectionLabel.setText("Select a sample album to preview create/rename/delete/open flows.");
+            } else {
+                selectionLabel.setText("Selected album: " + extractAlbumName(newValue));
+            }
+        });
+        albumsListView.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2
+                    && albumsListView.getSelectionModel().getSelectedItem() != null) {
+                handleOpenAlbum();
+            }
+        });
     }
 
     public void setUsername(String username) {
         if ("stock".equalsIgnoreCase(username)) {
             headingLabel.setText("Welcome, stock");
-            subtitleLabel.setText("Stock user UI preview only. Stock loading and album data are not implemented yet.");
+            subtitleLabel.setText("Stock user UI preview only. Album management dialogs are placeholders in this milestone.");
             return;
         }
 
         headingLabel.setText("Welcome, " + username);
-        subtitleLabel.setText("Albums screen UI only. Album data and login validation are not implemented yet.");
+        subtitleLabel.setText("Album management UI only. Dialogs preview the flow, but no real album data is changed yet.");
     }
 
     @FXML
     private void handleCreateAlbum() {
-        showPlaceholderMessage("Create Album", "Album creation is part of a later milestone with model and validation support.");
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Create Album");
+        dialog.setHeaderText("Create album UI");
+        dialog.setContentText("Album name:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            showPlaceholderMessage("Create Album", "UI preview only. A real album named '" + result.get().trim()
+                    + "' would be created in a later logic milestone.");
+        }
     }
 
     @FXML
     private void handleRenameAlbum() {
-        showPlaceholderMessage("Rename Album", "Album rename logic is not implemented yet in this UI-only step.");
+        String selectedAlbum = getSelectedAlbumOrShowMessage("Rename Album", "Select an album to rename.");
+        if (selectedAlbum == null) {
+            return;
+        }
+
+        TextInputDialog dialog = new TextInputDialog(extractAlbumName(selectedAlbum));
+        dialog.setTitle("Rename Album");
+        dialog.setHeaderText("Rename album UI");
+        dialog.setContentText("New album name:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            showPlaceholderMessage("Rename Album", "UI preview only. '" + extractAlbumName(selectedAlbum)
+                    + "' would be renamed to '" + result.get().trim() + "' in a later logic milestone.");
+        }
     }
 
     @FXML
     private void handleDeleteAlbum() {
-        showPlaceholderMessage("Delete Album", "Album delete logic is not implemented yet in this UI-only step.");
+        String selectedAlbum = getSelectedAlbumOrShowMessage("Delete Album", "Select an album to delete.");
+        if (selectedAlbum == null) {
+            return;
+        }
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Album");
+        alert.setHeaderText("Delete album UI");
+        alert.setContentText("This is a preview confirmation for deleting '" + extractAlbumName(selectedAlbum) + "'.");
+        alert.showAndWait();
     }
 
     @FXML
     private void handleOpenAlbum() {
-        showPlaceholderMessage("Open Album", "The album contents screen belongs to a later milestone.");
+        String selectedAlbum = getSelectedAlbumOrShowMessage("Open Album", "Select an album to open.");
+        if (selectedAlbum == null) {
+            return;
+        }
+
+        showPlaceholderMessage("Open Album", "UI preview only. The album contents screen for '"
+                + extractAlbumName(selectedAlbum) + "' belongs to the next UI milestone.");
     }
 
     @FXML
@@ -74,5 +142,49 @@ public class AlbumsController {
         alert.setHeaderText("UI placeholder");
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private String getSelectedAlbumOrShowMessage(String title, String message) {
+        String selectedAlbum = albumsListView.getSelectionModel().getSelectedItem();
+        if (selectedAlbum == null) {
+            showPlaceholderMessage(title, message);
+        }
+        return selectedAlbum;
+    }
+
+    private String extractAlbumName(String albumSummary) {
+        int separatorIndex = albumSummary.indexOf('|');
+        if (separatorIndex < 0) {
+            return albumSummary;
+        }
+        return albumSummary.substring(0, separatorIndex).trim();
+    }
+
+    private static class AlbumSummaryCell extends ListCell<String> {
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+
+            String[] parts = item.split("\\|", 3);
+            Label nameLabel = new Label(parts.length > 0 ? parts[0].trim() : item);
+            nameLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
+
+            Label countLabel = new Label(parts.length > 1 ? parts[1].trim() : "");
+            countLabel.setStyle("-fx-text-fill: #4b5563;");
+
+            Label dateRangeLabel = new Label(parts.length > 2 ? parts[2].trim() : "");
+            dateRangeLabel.setStyle("-fx-text-fill: #4b5563;");
+
+            VBox content = new VBox(4.0, nameLabel, countLabel, dateRangeLabel);
+            content.setFillWidth(true);
+            setText(null);
+            setGraphic(content);
+        }
     }
 }
