@@ -129,7 +129,11 @@ public class AlbumsController {
 
     @FXML
     private void handleSearch() {
-        showPlaceholderMessage("Search", "Search UI and logic will be added in a later milestone.");
+        try {
+            app.showSearchView(currentUsername);
+        } catch (IOException exception) {
+            showPlaceholderMessage("Search", "Unable to load the search screen.");
+        }
     }
 
     @FXML

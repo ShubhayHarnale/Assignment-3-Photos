@@ -9,6 +9,7 @@ import photos.controller.AdminController;
 import photos.controller.AlbumContentsController;
 import photos.controller.AlbumsController;
 import photos.controller.LoginController;
+import photos.controller.SearchController;
 
 import java.io.IOException;
 
@@ -77,6 +78,17 @@ public class Photos extends Application {
         controller.setContext(username, albumName);
 
         showScene(root, "Photos - Album Contents", ALBUM_WINDOW_WIDTH, ALBUM_WINDOW_HEIGHT, 900, 640);
+    }
+
+    public void showSearchView(String username) throws IOException {
+        FXMLLoader loader = createLoader("view/SearchView.fxml");
+        Parent root = loader.load();
+
+        SearchController controller = loader.getController();
+        controller.setApp(this);
+        controller.setUsername(username);
+
+        showScene(root, "Photos - Search", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, 860, 560);
     }
 
     private FXMLLoader createLoader(String resourcePath) {
