@@ -23,12 +23,12 @@ public class AdminController {
 
     @FXML
     private void handleCreateUser() {
-        showPlaceholderMessage("Create User", "User creation UI logic is intentionally deferred until the model and admin business rules are added.");
+        showPlaceholderMessage("Create User", "Create user is a UI placeholder in this milestone. Real admin logic is intentionally deferred.");
     }
 
     @FXML
     private void handleDeleteUser() {
-        showPlaceholderMessage("Delete User", "User deletion UI logic is intentionally deferred until the model and admin business rules are added.");
+        showPlaceholderMessage("Delete User", "Delete user is a UI placeholder in this milestone. Real admin logic is intentionally deferred.");
     }
 
     @FXML
@@ -47,4 +47,5 @@ public class AdminController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
 }

@@ -38,6 +38,7 @@
                     <FXCollections fx:factory="observableArrayList">
                         <String fx:value="stock" />
                         <String fx:value="example-user" />
+                        <String fx:value="sample-student" />
                     </FXCollections>
                 </items>
             </ListView>
