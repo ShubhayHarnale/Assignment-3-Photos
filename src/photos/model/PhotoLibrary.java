@@ -15,7 +15,16 @@ public class PhotoLibrary implements Serializable {
 
     public PhotoLibrary() {
         this.users = new ArrayList<>();
-        users.add(new User(STOCK_USERNAME));
+        ensureStockUser();
+    }
+
+    public User ensureStockUser() {
+        User stockUser = getUser(STOCK_USERNAME);
+        if (stockUser == null) {
+            stockUser = new User(STOCK_USERNAME);
+            users.add(stockUser);
+        }
+        return stockUser;
     }
 
     public List<User> getUsers() {
