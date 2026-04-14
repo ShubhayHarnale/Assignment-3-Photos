@@ -80,7 +80,7 @@
                         <HBox spacing="14.0">
                             <VBox spacing="10.0" HBox.hgrow="ALWAYS">
                                 <Label style="-fx-font-size: 15px; -fx-font-weight: bold;" text="Edit Caption" />
-                                <TextArea fx:id="captionEditor" prefRowCount="3" promptText="Enter caption text for UI preview" wrapText="true" />
+                                <TextArea fx:id="captionEditor" prefRowCount="3" promptText="Enter a caption for the selected photo" wrapText="true" />
                                 <Button mnemonicParsing="false" onAction="#handleSaveCaption" text="Save Caption" />
                             </VBox>
 
@@ -98,7 +98,7 @@
                             </VBox>
                         </HBox>
 
-                        <Label fx:id="previewStatusLabel" style="-fx-text-fill: #4b5563;" text="Select a sample photo to preview details." wrapText="true" />
+                        <Label fx:id="previewStatusLabel" style="-fx-text-fill: #4b5563;" text="Select a photo to preview details." wrapText="true" />
                     </VBox>
                 </HBox>
             </content>

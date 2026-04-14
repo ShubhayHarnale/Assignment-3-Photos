@@ -21,7 +21,7 @@
 
     <VBox alignment="CENTER_LEFT" maxWidth="360.0" spacing="10.0">
         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Login" />
-        <Label text="Enter a username to preview the routed screen." />
+        <Label text="Enter a username to sign in." />
         <TextField fx:id="usernameField" prefWidth="360.0" promptText="Username" />
         <Label fx:id="feedbackLabel" style="-fx-text-fill: #b42318;" text=" " wrapText="true" />
         <Button defaultButton="true" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleLogin" text="Continue" />
@@ -31,9 +31,9 @@
 
     <HBox alignment="CENTER_LEFT" maxWidth="360.0" spacing="12.0">
         <VBox spacing="4.0">
-            <Label style="-fx-font-weight: bold;" text="UI preview routing" />
+            <Label style="-fx-font-weight: bold;" text="Built-in users" />
             <Label text="admin opens the admin screen." />
-            <Label text="Any other non-empty username opens the user albums screen." />
+            <Label text="stock opens the bundled stock album." />
         </VBox>
         <Region HBox.hgrow="ALWAYS" />
     </HBox>

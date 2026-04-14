@@ -53,8 +53,12 @@ public class AdminController {
         }
 
         refreshUsers();
-        usersListView.getSelectionModel().select(username.toLowerCase());
-        subtitleLabel.setText("User '" + username.toLowerCase() + "' created.");
+        usersListView.getSelectionModel().select(app.getUsers().stream()
+                .map(User::getUsername)
+                .filter(existingUsername -> existingUsername.equalsIgnoreCase(username))
+                .findFirst()
+                .orElse(username));
+        subtitleLabel.setText("User '" + username + "' created.");
     }
 
     @FXML

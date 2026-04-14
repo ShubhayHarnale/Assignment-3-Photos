@@ -37,13 +37,13 @@ public class LoginController {
             return;
         }
 
-        if (!"admin".equalsIgnoreCase(username) && !app.hasUser(username)) {
+        if (!app.isAdminUsername(username) && !app.hasUser(username)) {
             feedbackLabel.setText("Unknown username. Create the user from the admin screen first.");
             return;
         }
 
         try {
-            if ("admin".equalsIgnoreCase(username)) {
+            if (app.isAdminUsername(username)) {
                 app.showAdminView();
             } else {
                 app.showAlbumsView(username);

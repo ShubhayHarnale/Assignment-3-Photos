@@ -11,19 +11,24 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import photos.Photos;
+import photos.model.Photo;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
-/**
- * Controller for the search UI preview screen.
- */
 public class SearchController {
     private Photos app;
     private String currentUsername;
+    private List<Photo> currentResults = List.of();
 
     @FXML
     private Label headingLabel;
@@ -74,7 +79,7 @@ public class SearchController {
     private ToggleGroup tagOperatorToggleGroup;
 
     @FXML
-    private ListView<String> resultsListView;
+    private ListView<Photo> resultsListView;
 
     @FXML
     private Label resultsStatusLabel;
@@ -85,21 +90,9 @@ public class SearchController {
 
     @FXML
     private void initialize() {
-        firstTagTypeComboBox.getItems().setAll("location", "person", "event", "year");
-        secondTagTypeComboBox.getItems().setAll("location", "person", "event", "year");
-        firstTagTypeComboBox.getSelectionModel().selectFirst();
-        secondTagTypeComboBox.getSelectionModel().select(1);
-
-        startDatePicker.setValue(LocalDate.of(2026, 1, 1));
-        endDatePicker.setValue(LocalDate.of(2026, 1, 31));
-
+        firstTagTypeComboBox.setEditable(true);
+        secondTagTypeComboBox.setEditable(true);
         resultsListView.setCellFactory(listView -> new SearchResultCell());
-        resultsListView.getItems().setAll(
-                "Beach-Sunrise.jpg | Family Trip | Jan 3, 2026",
-                "Museum-Day.png | Family Trip | Jan 5, 2026",
-                "Dinner-Night.jpg | Favorites | Jan 9, 2026"
-        );
-
         searchModeToggleGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> updateSearchModeView());
         updateSearchModeView();
     }
@@ -107,7 +100,8 @@ public class SearchController {
     public void setUsername(String username) {
         currentUsername = username;
         headingLabel.setText("Search Photos");
-        subtitleLabel.setText("Search UI only for " + username + ". Controls and results are sample placeholders.");
+        subtitleLabel.setText("Search photos by date range or by up to two tag-value pairs.");
+        refreshTagTypeChoices();
     }
 
     @FXML
@@ -121,23 +115,43 @@ public class SearchController {
 
     @FXML
     private void handleRunSearch() {
-        String searchMode = dateSearchRadio.isSelected() ? "date search" : "tag search";
-        showPlaceholderMessage("Run Search", "Search UI is complete, but actual " + searchMode
-                + " behavior belongs to the next logic milestone.");
+        if (dateSearchRadio.isSelected()) {
+            runDateSearch();
+        } else {
+            runTagSearch();
+        }
     }
 
     @FXML
     private void handleCreateAlbumFromResults() {
+        if (currentResults.isEmpty()) {
+            showError("Create Album From Results", "Run a search with at least one result first.");
+            return;
+        }
+
         TextInputDialog dialog = new TextInputDialog("Search Results");
         dialog.setTitle("Create Album From Results");
-        dialog.setHeaderText("Create album from results UI");
+        dialog.setHeaderText("Create album from current search results");
         dialog.setContentText("Album name:");
 
         Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            showPlaceholderMessage("Create Album From Results", "UI preview only. A real album named '"
-                    + result.get().trim() + "' would be created from the current sample search results later.");
+        if (result.isEmpty()) {
+            return;
         }
+
+        String albumName = result.get().trim();
+        if (albumName.isEmpty()) {
+            showError("Create Album From Results", "Enter an album name.");
+            return;
+        }
+
+        boolean created = app.createAlbumFromPhotos(currentUsername, albumName, currentResults);
+        if (!created) {
+            showError("Create Album From Results", "Album names must be unique for this user.");
+            return;
+        }
+
+        resultsStatusLabel.setText("Created album '" + albumName + "' from " + currentResults.size() + " result(s).");
     }
 
     private void updateSearchModeView() {
@@ -147,21 +161,94 @@ public class SearchController {
         tagSearchPane.setVisible(!dateMode);
         tagSearchPane.setManaged(!dateMode);
         resultsStatusLabel.setText(dateMode
-                ? "Showing sample results for date-range search."
-                : "Showing sample results for tag-based search.");
+                ? "Run a date-range search to see matching photos."
+                : "Run a tag search to see matching photos.");
     }
 
-    private void showPlaceholderMessage(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+    private void runDateSearch() {
+        LocalDate startDate = startDatePicker.getValue();
+        LocalDate endDate = endDatePicker.getValue();
+        if (startDate == null || endDate == null) {
+            showError("Run Search", "Select both a start date and an end date.");
+            return;
+        }
+        if (endDate.isBefore(startDate)) {
+            showError("Run Search", "The end date must be on or after the start date.");
+            return;
+        }
+
+        currentResults = app.searchPhotosByDate(currentUsername, startDate, endDate);
+        resultsListView.getItems().setAll(currentResults);
+        resultsStatusLabel.setText("Found " + currentResults.size() + " photo(s) between "
+                + startDate + " and " + endDate + ".");
+    }
+
+    private void runTagSearch() {
+        String firstTagType = getComboBoxValue(firstTagTypeComboBox);
+        String firstTagValue = firstTagValueField.getText() == null ? "" : firstTagValueField.getText().trim();
+        String secondTagType = getComboBoxValue(secondTagTypeComboBox);
+        String secondTagValue = secondTagValueField.getText() == null ? "" : secondTagValueField.getText().trim();
+
+        if (firstTagType.isBlank() || firstTagValue.isBlank()) {
+            showError("Run Search", "Enter the first tag type and value.");
+            return;
+        }
+
+        boolean hasSecondTagInput = !secondTagType.isBlank() || !secondTagValue.isBlank();
+        if (hasSecondTagInput && (secondTagType.isBlank() || secondTagValue.isBlank())) {
+            showError("Run Search", "Enter both the second tag type and value, or leave both blank.");
+            return;
+        }
+
+        currentResults = app.searchPhotosByTags(
+                currentUsername,
+                firstTagType,
+                firstTagValue,
+                secondTagType,
+                secondTagValue,
+                andRadio.isSelected()
+        );
+        resultsListView.getItems().setAll(currentResults);
+        resultsStatusLabel.setText("Found " + currentResults.size() + " photo(s) matching the selected tag search.");
+    }
+
+    private String getComboBoxValue(ComboBox<String> comboBox) {
+        String editorValue = comboBox.getEditor().getText();
+        if (editorValue != null && !editorValue.isBlank()) {
+            return editorValue.trim();
+        }
+
+        String selectedValue = comboBox.getValue();
+        return selectedValue == null ? "" : selectedValue.trim();
+    }
+
+    private void refreshTagTypeChoices() {
+        List<String> tagTypes = app.getTagTypes(currentUsername);
+        if (tagTypes.isEmpty()) {
+            return;
+        }
+
+        firstTagTypeComboBox.getItems().setAll(tagTypes);
+        secondTagTypeComboBox.getItems().setAll(tagTypes);
+        firstTagTypeComboBox.getSelectionModel().selectFirst();
+        if (tagTypes.size() > 1) {
+            secondTagTypeComboBox.getSelectionModel().select(1);
+        } else {
+            secondTagTypeComboBox.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
-        alert.setHeaderText("UI placeholder");
+        alert.setHeaderText("Unable to complete action");
         alert.setContentText(message);
         alert.showAndWait();
     }
 
-    private static class SearchResultCell extends ListCell<String> {
+    private class SearchResultCell extends ListCell<Photo> {
         @Override
-        protected void updateItem(String item, boolean empty) {
+        protected void updateItem(Photo item, boolean empty) {
             super.updateItem(item, empty);
 
             if (empty || item == null) {
@@ -170,19 +257,36 @@ public class SearchController {
                 return;
             }
 
-            String[] parts = item.split("\\|", 3);
+            Path path = Path.of(item.getFilePath());
+            Path fileName = path.getFileName();
 
-            Label fileNameLabel = new Label(parts.length > 0 ? parts[0].trim() : item);
+            ImageView thumbnailView = new ImageView();
+            thumbnailView.setFitWidth(64);
+            thumbnailView.setFitHeight(64);
+            thumbnailView.setPreserveRatio(true);
+            thumbnailView.setSmooth(true);
+
+            try {
+                Image thumbnail = new Image(new File(item.getFilePath()).toURI().toString(), 64, 64, true, true, true);
+                if (!thumbnail.isError()) {
+                    thumbnailView.setImage(thumbnail);
+                }
+            } catch (RuntimeException exception) {
+                thumbnailView.setImage(null);
+            }
+
+            Label fileNameLabel = new Label(fileName == null ? item.getFilePath() : fileName.toString());
             fileNameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
-            Label albumLabel = new Label(parts.length > 1 ? "Album: " + parts[1].trim() : "");
-            albumLabel.setStyle("-fx-text-fill: #4b5563;");
+            Label captionLabel = new Label(item.getCaption().isBlank() ? "Caption: -" : "Caption: " + item.getCaption());
+            captionLabel.setStyle("-fx-text-fill: #4b5563;");
+            captionLabel.setWrapText(true);
 
-            Label dateLabel = new Label(parts.length > 2 ? "Date: " + parts[2].trim() : "");
+            Label dateLabel = new Label("Date: " + app.formatPhotoDate(item.getDateTaken()));
             dateLabel.setStyle("-fx-text-fill: #4b5563;");
 
             setText(null);
-            setGraphic(new VBox(4.0, fileNameLabel, albumLabel, dateLabel));
+            setGraphic(new HBox(10.0, thumbnailView, new VBox(4.0, fileNameLabel, captionLabel, dateLabel)));
         }
     }
 }
