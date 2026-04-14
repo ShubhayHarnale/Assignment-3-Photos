@@ -12,11 +12,14 @@ import photos.controller.AlbumContentsController;
 import photos.controller.AlbumsController;
 import photos.controller.LoginController;
 import photos.controller.SearchController;
+import photos.model.Album;
 import photos.model.PhotoLibrary;
 import photos.model.PhotoLibraryStorage;
 import photos.model.User;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class Photos extends Application {
@@ -24,6 +27,7 @@ public class Photos extends Application {
     private static final double DEFAULT_WINDOW_HEIGHT = 560;
     private static final double ALBUM_WINDOW_WIDTH = 980;
     private static final double ALBUM_WINDOW_HEIGHT = 720;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy");
 
     private Stage primaryStage;
     private PhotoLibrary photoLibrary;
@@ -124,6 +128,45 @@ public class Photos extends Application {
         return photoLibrary.removeUser(username.trim());
     }
 
+    public List<String> getAlbumSummaries(String username) {
+        User user = getUser(username);
+        if (user == null) {
+            return List.of();
+        }
+
+        return user.getAlbums().stream()
+                .map(this::formatAlbumSummary)
+                .toList();
+    }
+
+    public boolean createAlbum(String username, String albumName) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+        return user.createAlbum(albumName);
+    }
+
+    public boolean renameAlbum(String username, String currentName, String newName) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+        return user.renameAlbum(currentName, newName);
+    }
+
+    public boolean deleteAlbum(String username, String albumName) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+        return user.deleteAlbum(albumName);
+    }
+
+    public boolean hasUser(String username) {
+        return getUser(username) != null;
+    }
+
     public boolean logoutToLogin() {
         if (!savePhotoLibrary()) {
             return false;
@@ -148,6 +191,28 @@ public class Photos extends Application {
         primaryStage.setMinHeight(minHeight);
         primaryStage.setScene(new Scene(root, width, height));
         primaryStage.sizeToScene();
+    }
+
+    private User getUser(String username) {
+        if (username == null) {
+            return null;
+        }
+        return photoLibrary.getUser(username.trim());
+    }
+
+    private String formatAlbumSummary(Album album) {
+        int photoCount = album.getPhotoCount();
+        String photoCountText = photoCount + (photoCount == 1 ? " photo" : " photos");
+        String dateRangeText = formatDateRange(album.getStartDate(), album.getEndDate());
+        return album.getName() + " | " + photoCountText + " | " + dateRangeText;
+    }
+
+    private String formatDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate == null || endDate == null) {
+            return "No photos";
+        }
+
+        return DATE_FORMATTER.format(startDate) + " - " + DATE_FORMATTER.format(endDate);
     }
 
     private PhotoLibrary loadPhotoLibrary() {

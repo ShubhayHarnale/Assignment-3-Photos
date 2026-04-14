@@ -54,6 +54,20 @@ public class User implements Comparable<User>, Serializable {
         return null;
     }
 
+    public boolean createAlbum(String albumName) {
+        if (albumName == null) {
+            return false;
+        }
+
+        String trimmedName = albumName.trim();
+        if (trimmedName.isEmpty() || hasAlbum(trimmedName)) {
+            return false;
+        }
+
+        albums.add(new Album(trimmedName));
+        return true;
+    }
+
     public boolean addAlbum(Album album) {
         if (album == null || hasAlbum(album.getName())) {
             return false;
@@ -64,6 +78,35 @@ public class User implements Comparable<User>, Serializable {
 
     public boolean removeAlbum(Album album) {
         return albums.remove(album);
+    }
+
+    public boolean deleteAlbum(String albumName) {
+        Album album = getAlbum(albumName);
+        if (album == null) {
+            return false;
+        }
+        return albums.remove(album);
+    }
+
+    public boolean renameAlbum(String currentName, String newName) {
+        if (currentName == null || newName == null) {
+            return false;
+        }
+
+        Album album = getAlbum(currentName.trim());
+        String trimmedNewName = newName.trim();
+
+        if (album == null || trimmedNewName.isEmpty()) {
+            return false;
+        }
+
+        Album existingAlbum = getAlbum(trimmedNewName);
+        if (existingAlbum != null && existingAlbum != album) {
+            return false;
+        }
+
+        album.setName(trimmedNewName);
+        return true;
     }
 
     public boolean addTagDefinition(TagDefinition tagDefinition) {
