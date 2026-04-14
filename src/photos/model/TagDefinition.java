@@ -10,7 +10,7 @@ public class TagDefinition implements Serializable {
     private final boolean singleValue;
 
     public TagDefinition(String name, boolean singleValue) {
-        this.name = name;
+        this.name = name == null ? "" : name.trim();
         this.singleValue = singleValue;
     }
 
@@ -27,12 +27,12 @@ public class TagDefinition implements Serializable {
         if (this == obj) return true;
         if (!(obj instanceof TagDefinition)) return false;
         TagDefinition other = (TagDefinition) obj;
-        return Objects.equals(name, other.name);
+        return name.equalsIgnoreCase(other.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(name.toLowerCase());
     }
 
     @Override
