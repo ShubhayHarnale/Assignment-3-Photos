@@ -1,9 +1,11 @@
 package photos;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 import photos.controller.AdminController;
 import photos.controller.AlbumContentsController;
@@ -11,6 +13,7 @@ import photos.controller.AlbumsController;
 import photos.controller.LoginController;
 import photos.controller.SearchController;
 import photos.model.PhotoLibrary;
+import photos.model.PhotoLibraryStorage;
 import photos.model.User;
 
 import java.io.IOException;
@@ -23,16 +26,27 @@ public class Photos extends Application {
     private static final double ALBUM_WINDOW_HEIGHT = 720;
 
     private Stage primaryStage;
-    private final PhotoLibrary photoLibrary = new PhotoLibrary();
+    private PhotoLibrary photoLibrary;
+    private String startupMessage;
 
     @Override
     public void start(Stage primaryStage) throws IOException {
         this.primaryStage = primaryStage;
+        photoLibrary = loadPhotoLibrary();
         primaryStage.setTitle("Photos");
         primaryStage.setMinWidth(760);
         primaryStage.setMinHeight(500);
+        primaryStage.setOnCloseRequest(event -> {
+            if (!savePhotoLibrary()) {
+                event.consume();
+            }
+        });
         showLoginView();
         primaryStage.show();
+
+        if (startupMessage != null) {
+            Platform.runLater(() -> showError("Saved Data", startupMessage));
+        }
     }
 
     public static void main(String[] args) {
@@ -110,6 +124,20 @@ public class Photos extends Application {
         return photoLibrary.removeUser(username.trim());
     }
 
+    public boolean logoutToLogin() {
+        if (!savePhotoLibrary()) {
+            return false;
+        }
+
+        try {
+            showLoginView();
+            return true;
+        } catch (IOException exception) {
+            showError("Login", "Unable to return to the login screen.");
+            return false;
+        }
+    }
+
     private FXMLLoader createLoader(String resourcePath) {
         return new FXMLLoader(Photos.class.getResource(resourcePath));
     }
@@ -120,5 +148,32 @@ public class Photos extends Application {
         primaryStage.setMinHeight(minHeight);
         primaryStage.setScene(new Scene(root, width, height));
         primaryStage.sizeToScene();
+    }
+
+    private PhotoLibrary loadPhotoLibrary() {
+        try {
+            return PhotoLibraryStorage.load();
+        } catch (IOException | ClassNotFoundException exception) {
+            startupMessage = "Saved data could not be loaded. The app started with a new library.";
+            return new PhotoLibrary();
+        }
+    }
+
+    private boolean savePhotoLibrary() {
+        try {
+            PhotoLibraryStorage.save(photoLibrary);
+            return true;
+        } catch (IOException exception) {
+            showError("Save Data", "Your changes could not be saved.");
+            return false;
+        }
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Unable to complete action");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

@@ -1,8 +1,11 @@
 package photos.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class TagDefinition {
+public class TagDefinition implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final String name;
     private final boolean singleValue;
 

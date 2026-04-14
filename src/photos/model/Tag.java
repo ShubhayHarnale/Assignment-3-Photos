@@ -1,8 +1,10 @@
 package photos.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Tag {
+public class Tag implements Serializable {
+    private static final long serialVersionUID = 1L;
 
 //Quite straightforward, just storing the type and value.
     private final String type;

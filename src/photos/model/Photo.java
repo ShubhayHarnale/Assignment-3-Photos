@@ -1,12 +1,15 @@
 package photos.model;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class Photo {
+public class Photo implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final String filePath;
     private String caption;//Not making it final because the user can change the caption later.
     private LocalDateTime dateTaken;
