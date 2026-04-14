@@ -13,13 +13,17 @@ import photos.controller.AlbumsController;
 import photos.controller.LoginController;
 import photos.controller.SearchController;
 import photos.model.Album;
+import photos.model.Photo;
 import photos.model.PhotoLibrary;
 import photos.model.PhotoLibraryStorage;
 import photos.model.User;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 public class Photos extends Application {
@@ -167,6 +171,58 @@ public class Photos extends Application {
         return getUser(username) != null;
     }
 
+    public List<Photo> getAlbumPhotos(String username, String albumName) {
+        Album album = getAlbum(username, albumName);
+        if (album == null) {
+            return List.of();
+        }
+
+        return album.getPhotos().stream()
+                .sorted(Comparator.comparing(Photo::getFilePath, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public String addPhotoToAlbum(String username, String albumName, File photoFile) {
+        if (photoFile == null) {
+            return "Select a photo file.";
+        }
+
+        if (!Files.exists(photoFile.toPath()) || !Files.isRegularFile(photoFile.toPath())) {
+            return "The selected photo file could not be found.";
+        }
+
+        User user = getUser(username);
+        if (user == null || user.getAlbum(albumName) == null) {
+            return "The selected album could not be found.";
+        }
+
+        try {
+            boolean added = user.addPhotoToAlbum(albumName, photoFile.toPath());
+            if (!added) {
+                return "This photo is already in the album.";
+            }
+            return null;
+        } catch (IOException exception) {
+            return "Unable to read the selected photo file.";
+        }
+    }
+
+    public boolean removePhotoFromAlbum(String username, String albumName, String filePath) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+
+        return user.removePhotoFromAlbum(albumName, filePath);
+    }
+
+    public String formatPhotoDate(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "-";
+        }
+        return DATE_FORMATTER.format(dateTime);
+    }
+
     public boolean logoutToLogin() {
         if (!savePhotoLibrary()) {
             return false;
@@ -198,6 +254,14 @@ public class Photos extends Application {
             return null;
         }
         return photoLibrary.getUser(username.trim());
+    }
+
+    private Album getAlbum(String username, String albumName) {
+        User user = getUser(username);
+        if (user == null || albumName == null) {
+            return null;
+        }
+        return user.getAlbum(albumName.trim());
     }
 
     private String formatAlbumSummary(Album album) {
