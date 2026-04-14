@@ -6,13 +6,12 @@ import java.util.Objects;
 public class Tag implements Serializable {
     private static final long serialVersionUID = 1L;
 
-//Quite straightforward, just storing the type and value.
     private final String type;
     private final String value;
 
     public Tag(String type, String value) {
-        this.type = type;
-        this.value = value;
+        this.type = type == null ? "" : type.trim();
+        this.value = value == null ? "" : value.trim();
     }
 
     public String getType() {
@@ -29,15 +28,15 @@ public class Tag implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true; //This is crucial because two pictures can not have the same tag.
+        if (this == obj) return true;
         if (!(obj instanceof Tag)) return false;
         Tag other = (Tag) obj;
-        return Objects.equals(type, other.type) && Objects.equals(value, other.value);
+        return type.equalsIgnoreCase(other.type) && value.equalsIgnoreCase(other.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, value);
+        return Objects.hash(type.toLowerCase(), value.toLowerCase());
     }
 
     @Override

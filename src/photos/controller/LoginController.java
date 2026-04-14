@@ -9,7 +9,6 @@ import java.io.IOException;
 
 /**
  * Controller for the login screen UI.
- * This milestone only provides scene routing for preview purposes.
  */
 public class LoginController {
     private Photos app;
@@ -34,7 +33,12 @@ public class LoginController {
         String username = usernameField.getText() == null ? "" : usernameField.getText().trim();
 
         if (username.isEmpty()) {
-            feedbackLabel.setText("Enter a username to preview the next screen.");
+            feedbackLabel.setText("Enter a username.");
+            return;
+        }
+
+        if (!"admin".equalsIgnoreCase(username) && !app.hasUser(username)) {
+            feedbackLabel.setText("Unknown username. Create the user from the admin screen first.");
             return;
         }
 

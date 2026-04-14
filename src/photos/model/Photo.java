@@ -32,10 +32,10 @@ public class Photo implements Serializable {
 
     public void setCaption(String caption) {
         if (caption == null) {
-      this.caption = "";
-  } else {
-      this.caption = caption;
-  }
+            this.caption = "";
+        } else {
+            this.caption = caption.trim();
+        }
     }
 
     public LocalDateTime getDateTaken() {
@@ -50,9 +50,9 @@ public class Photo implements Serializable {
         return Collections.unmodifiableList(tags);
     }
 
-    public boolean hasTag(String name, String value) { //Checking for any duplicates.
+    public boolean hasTag(String name, String value) {
         for (Tag tag : tags) {
-            if (tag.getName().equals(name) && tag.getValue().equals(value)) {
+            if (tag.getName().equalsIgnoreCase(name) && tag.getValue().equalsIgnoreCase(value)) {
                 return true;
             }
         }
