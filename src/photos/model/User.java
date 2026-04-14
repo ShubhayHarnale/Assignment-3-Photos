@@ -1,9 +1,17 @@
 package photos.model;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class User implements Comparable<User>, Serializable {
@@ -12,11 +20,13 @@ public class User implements Comparable<User>, Serializable {
     private final String username;
     private final List<Album> albums;
     private final List<TagDefinition> tagDefinitions;
+    private Map<String, Photo> photoRegistry;
 
     public User(String username) {
         this.username = username;
         this.albums = new ArrayList<>();
         this.tagDefinitions = new ArrayList<>();
+        this.photoRegistry = new HashMap<>();
 
         addTagDefinition(new TagDefinition("location", true));
         addTagDefinition(new TagDefinition("person", false));
@@ -109,6 +119,44 @@ public class User implements Comparable<User>, Serializable {
         return true;
     }
 
+    public boolean addPhotoToAlbum(String albumName, Path photoPath) throws IOException {
+        Album album = getAlbum(albumName);
+        if (album == null || photoPath == null) {
+            return false;
+        }
+
+        ensurePhotoRegistry();
+
+        String normalizedPath = normalizeFilePath(photoPath.toString());
+        Photo photo = photoRegistry.get(normalizedPath);
+        if (photo == null) {
+            photo = new Photo(normalizedPath);
+            FileTime lastModifiedTime = Files.getLastModifiedTime(photoPath);
+            LocalDateTime photoDate = LocalDateTime.ofInstant(lastModifiedTime.toInstant(), ZoneId.systemDefault());
+            photo.setDateTaken(photoDate);
+            photoRegistry.put(normalizedPath, photo);
+        }
+
+        return album.addPhoto(photo);
+    }
+
+    public boolean removePhotoFromAlbum(String albumName, String filePath) {
+        Album album = getAlbum(albumName);
+        if (album == null || filePath == null || filePath.isBlank()) {
+            return false;
+        }
+
+        ensurePhotoRegistry();
+
+        String normalizedPath = normalizeFilePath(filePath);
+        Photo photo = photoRegistry.get(normalizedPath);
+        if (photo == null) {
+            return false;
+        }
+
+        return album.removePhoto(photo);
+    }
+
     public boolean addTagDefinition(TagDefinition tagDefinition) {
         if (tagDefinition == null || tagDefinitions.contains(tagDefinition)) {
             return false;
@@ -156,5 +204,21 @@ public class User implements Comparable<User>, Serializable {
     @Override
     public String toString() {
         return username;
+    }
+
+    private void ensurePhotoRegistry() {
+        if (photoRegistry == null) {
+            photoRegistry = new HashMap<>();
+        }
+
+        for (Album album : albums) {
+            for (Photo photo : album.getPhotos()) {
+                photoRegistry.putIfAbsent(normalizeFilePath(photo.getFilePath()), photo);
+            }
+        }
+    }
+
+    private String normalizeFilePath(String filePath) {
+        return Path.of(filePath).toAbsolutePath().normalize().toString();
     }
 }

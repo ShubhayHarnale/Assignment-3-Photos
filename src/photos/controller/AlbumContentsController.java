@@ -2,6 +2,7 @@ package photos.controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -10,18 +11,25 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
 import photos.Photos;
+import photos.model.Photo;
+import photos.model.Tag;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
- * Controller for the album contents UI preview screen.
+ * Controller for the album contents screen.
  */
 public class AlbumContentsController {
     private Photos app;
     private String currentUsername;
+    private String currentAlbumName;
 
     @FXML
     private Label albumTitleLabel;
@@ -30,7 +38,7 @@ public class AlbumContentsController {
     private Label albumSubtitleLabel;
 
     @FXML
-    private ListView<SamplePhoto> photosListView;
+    private ListView<Photo> photosListView;
 
     @FXML
     private Label previewTitleLabel;
@@ -68,21 +76,11 @@ public class AlbumContentsController {
 
     @FXML
     private void initialize() {
-        photosListView.setCellFactory(listView -> new SamplePhotoCell());
-        photosListView.getItems().setAll(
-                new SamplePhoto("Beach-Sunrise.jpg", "Sunrise at the boardwalk", "Jan 3, 2026",
-                        Arrays.asList("location = Miami", "person = Ava")),
-                new SamplePhoto("Museum-Day.png", "Midday museum visit", "Jan 5, 2026",
-                        Arrays.asList("location = Boston", "person = Chris")),
-                new SamplePhoto("Dinner-Night.jpg", "Rooftop dinner with friends", "Jan 9, 2026",
-                        Arrays.asList("location = New York", "person = Sam"))
-        );
-
+        photosListView.setCellFactory(listView -> new PhotoCell());
         photosListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> updatePreview(newValue));
-        photosListView.getSelectionModel().selectFirst();
         tagsListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                previewStatusLabel.setText("Selected sample tag '" + newValue + "'.");
+                previewStatusLabel.setText("Selected tag '" + newValue + "'.");
             }
         });
 
@@ -98,9 +96,10 @@ public class AlbumContentsController {
 
     public void setContext(String username, String albumName) {
         currentUsername = username;
+        currentAlbumName = albumName;
         albumTitleLabel.setText(albumName);
-        albumSubtitleLabel.setText("Album contents UI only for " + username + ". Photo data and actions are sample placeholders.");
-        previewStatusLabel.setText("Selected sample photo preview for '" + albumName + "'.");
+        albumSubtitleLabel.setText("Add and remove photos for " + username + ".");
+        refreshPhotos();
     }
 
     @FXML
@@ -121,68 +120,130 @@ public class AlbumContentsController {
             return;
         }
 
-        showPlaceholderMessage("Previous Photo", "You are already on the first sample photo.");
+        showError("Previous Photo", "You are already on the first photo.");
     }
 
     @FXML
     private void handleNextPhoto() {
         int currentIndex = photosListView.getSelectionModel().getSelectedIndex();
-        if (currentIndex < photosListView.getItems().size() - 1) {
+        if (currentIndex >= 0 && currentIndex < photosListView.getItems().size() - 1) {
             photosListView.getSelectionModel().select(currentIndex + 1);
             photosListView.scrollTo(currentIndex + 1);
             return;
         }
 
-        showPlaceholderMessage("Next Photo", "You are already on the last sample photo.");
+        showError("Next Photo", "You are already on the last photo.");
     }
 
     @FXML
     private void handleAddPhoto() {
-        showPlaceholderMessage("Add Photo", "Add photo is a UI placeholder in this milestone.");
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Add Photo");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp"),
+                new FileChooser.ExtensionFilter("All Files", "*.*")
+        );
+
+        File selectedFile = fileChooser.showOpenDialog(previewPane.getScene().getWindow());
+        if (selectedFile == null) {
+            return;
+        }
+
+        String errorMessage = app.addPhotoToAlbum(currentUsername, currentAlbumName, selectedFile);
+        if (errorMessage != null) {
+            showError("Add Photo", errorMessage);
+            return;
+        }
+
+        refreshPhotos();
+        selectPhoto(selectedFile.toPath().toAbsolutePath().normalize().toString());
+        previewStatusLabel.setText("Photo added to '" + currentAlbumName + "'.");
     }
 
     @FXML
     private void handleRemovePhoto() {
-        showPlaceholderMessage("Remove Photo", "Remove photo is a UI placeholder in this milestone.");
+        Photo selectedPhoto = getSelectedPhotoOrShowError("Remove Photo", "Select a photo to remove.");
+        if (selectedPhoto == null) {
+            return;
+        }
+
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("Remove Photo");
+        confirmation.setHeaderText("Remove selected photo?");
+        confirmation.setContentText("Remove '" + getFileName(selectedPhoto) + "' from this album?");
+
+        Optional<ButtonType> result = confirmation.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return;
+        }
+
+        boolean removed = app.removePhotoFromAlbum(currentUsername, currentAlbumName, selectedPhoto.getFilePath());
+        if (!removed) {
+            showError("Remove Photo", "Unable to remove the selected photo.");
+            return;
+        }
+
+        refreshPhotos();
+        previewStatusLabel.setText("Photo removed from '" + currentAlbumName + "'.");
     }
 
     @FXML
     private void handleCopyPhoto() {
-        showPlaceholderMessage("Copy Photo", "Copy photo is a UI placeholder in this milestone.");
+        showPlaceholderMessage("Copy Photo", "Copy photo belongs to a later milestone.");
     }
 
     @FXML
     private void handleMovePhoto() {
-        showPlaceholderMessage("Move Photo", "Move photo is a UI placeholder in this milestone.");
+        showPlaceholderMessage("Move Photo", "Move photo belongs to a later milestone.");
     }
 
     @FXML
     private void handleSaveCaption() {
-        showPlaceholderMessage("Save Caption", "Caption editing UI is present, but saving caption data belongs to the next logic milestone.\n\nCurrent input: "
-                + captionEditor.getText().trim());
+        showPlaceholderMessage("Save Caption", "Caption editing belongs to a later milestone.");
     }
 
     @FXML
     private void handleAddTag() {
-        String tagType = tagTypeComboBox.getValue() == null ? "" : tagTypeComboBox.getValue();
-        String tagValue = tagValueField.getText() == null ? "" : tagValueField.getText().trim();
-        showPlaceholderMessage("Add Tag", "Tag editing UI is present, but adding tags belongs to the next logic milestone.\n\nType: "
-                + tagType + "\nValue: " + tagValue);
+        showPlaceholderMessage("Add Tag", "Tag editing belongs to a later milestone.");
     }
 
     @FXML
     private void handleDeleteTag() {
-        String selectedTag = tagsListView.getSelectionModel().getSelectedItem();
-        if (selectedTag == null) {
-            showPlaceholderMessage("Delete Tag", "Select a sample tag to preview the delete-tag flow.");
+        showPlaceholderMessage("Delete Tag", "Tag editing belongs to a later milestone.");
+    }
+
+    private void refreshPhotos() {
+        List<Photo> photos = app.getAlbumPhotos(currentUsername, currentAlbumName);
+        photosListView.getItems().setAll(photos);
+
+        if (photos.isEmpty()) {
+            updatePreview(null);
+            previewStatusLabel.setText("No photos in this album yet.");
             return;
         }
 
-        showPlaceholderMessage("Delete Tag", "Tag delete UI is present, but removing tags belongs to the next logic milestone.\n\nSelected tag: "
-                + selectedTag);
+        photosListView.getSelectionModel().selectFirst();
     }
 
-    private void updatePreview(SamplePhoto selectedPhoto) {
+    private Photo getSelectedPhotoOrShowError(String title, String message) {
+        Photo selectedPhoto = photosListView.getSelectionModel().getSelectedItem();
+        if (selectedPhoto == null) {
+            showError(title, message);
+        }
+        return selectedPhoto;
+    }
+
+    private void selectPhoto(String normalizedPath) {
+        for (Photo photo : photosListView.getItems()) {
+            if (photo.getFilePath().equalsIgnoreCase(normalizedPath)) {
+                photosListView.getSelectionModel().select(photo);
+                photosListView.scrollTo(photo);
+                break;
+            }
+        }
+    }
+
+    private void updatePreview(Photo selectedPhoto) {
         if (selectedPhoto == null) {
             previewTitleLabel.setText("No photo selected");
             captionValueLabel.setText("-");
@@ -190,36 +251,51 @@ public class AlbumContentsController {
             tagsValueLabel.setText("-");
             captionEditor.clear();
             tagsListView.getItems().clear();
-            previewStatusLabel.setText("Select a sample photo to preview details.");
+            previewStatusLabel.setText("Select a photo to preview details.");
             return;
         }
 
-        previewTitleLabel.setText(selectedPhoto.fileName());
-        captionValueLabel.setText(selectedPhoto.caption());
-        dateValueLabel.setText(selectedPhoto.dateTaken());
-        tagsValueLabel.setText(String.join(", ", selectedPhoto.tags()));
-        captionEditor.setText(selectedPhoto.caption());
-        tagsListView.getItems().setAll(selectedPhoto.tags());
+        List<String> tagStrings = selectedPhoto.getTags().stream()
+                .map(Tag::toString)
+                .collect(Collectors.toList());
+
+        previewTitleLabel.setText(getFileName(selectedPhoto));
+        captionValueLabel.setText(selectedPhoto.getCaption().isBlank() ? "-" : selectedPhoto.getCaption());
+        dateValueLabel.setText(app.formatPhotoDate(selectedPhoto.getDateTaken()));
+        tagsValueLabel.setText(tagStrings.isEmpty() ? "-" : String.join(", ", tagStrings));
+        captionEditor.setText(selectedPhoto.getCaption());
+        tagsListView.getItems().setAll(tagStrings);
         tagsListView.getSelectionModel().clearSelection();
         tagValueField.clear();
         tagTypeComboBox.getSelectionModel().selectFirst();
-        previewStatusLabel.setText("Previewing sample photo '" + selectedPhoto.fileName() + "'.");
+        previewStatusLabel.setText("Previewing '" + getFileName(selectedPhoto) + "'.");
+    }
+
+    private String getFileName(Photo photo) {
+        Path path = Path.of(photo.getFilePath());
+        Path fileName = path.getFileName();
+        return fileName == null ? photo.getFilePath() : fileName.toString();
     }
 
     private void showPlaceholderMessage(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
-        alert.setHeaderText("UI placeholder");
+        alert.setHeaderText("Not available yet");
         alert.setContentText(message);
         alert.showAndWait();
     }
 
-    private record SamplePhoto(String fileName, String caption, String dateTaken, List<String> tags) {
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Unable to complete action");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
-    private static class SamplePhotoCell extends ListCell<SamplePhoto> {
+    private static class PhotoCell extends ListCell<Photo> {
         @Override
-        protected void updateItem(SamplePhoto item, boolean empty) {
+        protected void updateItem(Photo item, boolean empty) {
             super.updateItem(item, empty);
 
             if (empty || item == null) {
@@ -228,14 +304,18 @@ public class AlbumContentsController {
                 return;
             }
 
-            Label fileNameLabel = new Label(item.fileName());
+            Path path = Path.of(item.getFilePath());
+            Path fileName = path.getFileName();
+
+            Label fileNameLabel = new Label(fileName == null ? item.getFilePath() : fileName.toString());
             fileNameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
-            Label captionLabel = new Label(item.caption());
-            captionLabel.setStyle("-fx-text-fill: #4b5563;");
+            Label pathLabel = new Label(item.getFilePath());
+            pathLabel.setStyle("-fx-text-fill: #4b5563;");
+            pathLabel.setWrapText(true);
 
             setText(null);
-            setGraphic(new javafx.scene.layout.VBox(4.0, fileNameLabel, captionLabel));
+            setGraphic(new javafx.scene.layout.VBox(4.0, fileNameLabel, pathLabel));
         }
     }
 }
