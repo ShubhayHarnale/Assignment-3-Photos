@@ -2,6 +2,7 @@ package photos.controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Controller for the user albums UI placeholder screen.
+ * Controller for the user albums screen.
  */
 public class AlbumsController {
     private Photos app;
@@ -41,7 +42,7 @@ public class AlbumsController {
         albumsListView.setCellFactory(listView -> new AlbumSummaryCell());
         albumsListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null) {
-                selectionLabel.setText("Select a sample album to preview create/rename/delete/open flows.");
+                selectionLabel.setText("Select an album to open or manage.");
             } else {
                 selectionLabel.setText("Selected album: " + extractAlbumName(newValue));
             }
@@ -56,28 +57,52 @@ public class AlbumsController {
 
     public void setUsername(String username) {
         currentUsername = username;
+        refreshAlbums();
+
+        if (!app.hasUser(username)) {
+            headingLabel.setText("Welcome, " + username);
+            subtitleLabel.setText("This user does not exist yet. Create it from the admin screen first.");
+            selectionLabel.setText("No albums available.");
+            return;
+        }
+
         if ("stock".equalsIgnoreCase(username)) {
             headingLabel.setText("Welcome, stock");
-            subtitleLabel.setText("Stock user UI preview only. Album management dialogs are placeholders in this milestone.");
+            subtitleLabel.setText("Viewing the stock user's albums.");
             return;
         }
 
         headingLabel.setText("Welcome, " + username);
-        subtitleLabel.setText("Album management UI only. Dialogs preview the flow, but no real album data is changed yet.");
+        subtitleLabel.setText("Create, rename, delete, and open albums.");
     }
 
     @FXML
     private void handleCreateAlbum() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Create Album");
-        dialog.setHeaderText("Create album UI");
+        dialog.setHeaderText("Create a new album");
         dialog.setContentText("Album name:");
 
         Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            showPlaceholderMessage("Create Album", "UI preview only. A real album named '" + result.get().trim()
-                    + "' would be created in a later logic milestone.");
+        if (result.isEmpty()) {
+            return;
         }
+
+        String albumName = result.get().trim();
+        if (albumName.isEmpty()) {
+            showError("Create Album", "Enter an album name.");
+            return;
+        }
+
+        boolean created = app.createAlbum(currentUsername, albumName);
+        if (!created) {
+            showError("Create Album", "Album names must be unique for this user.");
+            return;
+        }
+
+        refreshAlbums();
+        selectAlbum(albumName);
+        subtitleLabel.setText("Album '" + albumName + "' created.");
     }
 
     @FXML
@@ -89,14 +114,30 @@ public class AlbumsController {
 
         TextInputDialog dialog = new TextInputDialog(extractAlbumName(selectedAlbum));
         dialog.setTitle("Rename Album");
-        dialog.setHeaderText("Rename album UI");
+        dialog.setHeaderText("Rename the selected album");
         dialog.setContentText("New album name:");
 
         Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            showPlaceholderMessage("Rename Album", "UI preview only. '" + extractAlbumName(selectedAlbum)
-                    + "' would be renamed to '" + result.get().trim() + "' in a later logic milestone.");
+        if (result.isEmpty()) {
+            return;
         }
+
+        String currentAlbumName = extractAlbumName(selectedAlbum);
+        String newAlbumName = result.get().trim();
+        if (newAlbumName.isEmpty()) {
+            showError("Rename Album", "Enter a new album name.");
+            return;
+        }
+
+        boolean renamed = app.renameAlbum(currentUsername, currentAlbumName, newAlbumName);
+        if (!renamed) {
+            showError("Rename Album", "Album names must be unique for this user.");
+            return;
+        }
+
+        refreshAlbums();
+        selectAlbum(newAlbumName);
+        subtitleLabel.setText("Album '" + currentAlbumName + "' renamed to '" + newAlbumName + "'.");
     }
 
     @FXML
@@ -108,9 +149,23 @@ public class AlbumsController {
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Delete Album");
-        alert.setHeaderText("Delete album UI");
-        alert.setContentText("This is a preview confirmation for deleting '" + extractAlbumName(selectedAlbum) + "'.");
-        alert.showAndWait();
+        alert.setHeaderText("Delete selected album?");
+        alert.setContentText("Delete album '" + extractAlbumName(selectedAlbum) + "'?");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return;
+        }
+
+        String albumName = extractAlbumName(selectedAlbum);
+        boolean deleted = app.deleteAlbum(currentUsername, albumName);
+        if (!deleted) {
+            showError("Delete Album", "Unable to delete the selected album.");
+            return;
+        }
+
+        refreshAlbums();
+        subtitleLabel.setText("Album '" + albumName + "' deleted.");
     }
 
     @FXML
@@ -123,7 +178,7 @@ public class AlbumsController {
         try {
             app.showAlbumContentsView(currentUsername, extractAlbumName(selectedAlbum));
         } catch (IOException exception) {
-            showPlaceholderMessage("Open Album", "Unable to load the album contents screen.");
+            showError("Open Album", "Unable to load the album contents screen.");
         }
     }
 
@@ -132,7 +187,7 @@ public class AlbumsController {
         try {
             app.showSearchView(currentUsername);
         } catch (IOException exception) {
-            showPlaceholderMessage("Search", "Unable to load the search screen.");
+            showError("Search", "Unable to load the search screen.");
         }
     }
 
@@ -144,20 +199,41 @@ public class AlbumsController {
         }
     }
 
-    private void showPlaceholderMessage(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText("UI placeholder");
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void refreshAlbums() {
+        albumsListView.getItems().setAll(app.getAlbumSummaries(currentUsername));
+        albumsListView.getSelectionModel().clearSelection();
+
+        if (albumsListView.getItems().isEmpty()) {
+            selectionLabel.setText("No albums yet.");
+        } else {
+            selectionLabel.setText("Select an album to open or manage.");
+        }
     }
 
     private String getSelectedAlbumOrShowMessage(String title, String message) {
         String selectedAlbum = albumsListView.getSelectionModel().getSelectedItem();
         if (selectedAlbum == null) {
-            showPlaceholderMessage(title, message);
+            showError(title, message);
         }
         return selectedAlbum;
+    }
+
+    private void selectAlbum(String albumName) {
+        for (String albumSummary : albumsListView.getItems()) {
+            if (extractAlbumName(albumSummary).equalsIgnoreCase(albumName)) {
+                albumsListView.getSelectionModel().select(albumSummary);
+                albumsListView.scrollTo(albumSummary);
+                break;
+            }
+        }
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Unable to complete action");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private String extractAlbumName(String albumSummary) {
