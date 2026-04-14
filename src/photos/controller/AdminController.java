@@ -10,7 +10,6 @@ import photos.Photos;
 import photos.model.PhotoLibrary;
 import photos.model.User;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -93,19 +92,10 @@ public class AdminController {
 
     @FXML
     private void handleLogout() {
-        try {
-            app.showLoginView();
-        } catch (IOException exception) {
-            subtitleLabel.setText("Unable to return to the login screen.");
+        boolean loggedOut = app.logoutToLogin();
+        if (!loggedOut) {
+            subtitleLabel.setText("Unable to save changes and return to the login screen.");
         }
-    }
-
-    private void showPlaceholderMessage(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText("UI placeholder");
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 
     private void showError(String title, String message) {

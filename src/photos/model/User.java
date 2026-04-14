@@ -1,11 +1,14 @@
 package photos.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class User implements Comparable<User> {
+public class User implements Comparable<User>, Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final String username;
     private final List<Album> albums;
     private final List<TagDefinition> tagDefinitions;

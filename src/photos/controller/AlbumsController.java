@@ -138,10 +138,9 @@ public class AlbumsController {
 
     @FXML
     private void handleLogout() {
-        try {
-            app.showLoginView();
-        } catch (IOException exception) {
-            subtitleLabel.setText("Unable to return to the login screen.");
+        boolean loggedOut = app.logoutToLogin();
+        if (!loggedOut) {
+            subtitleLabel.setText("Unable to save changes and return to the login screen.");
         }
     }
 

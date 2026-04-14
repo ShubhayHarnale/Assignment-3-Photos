@@ -1,10 +1,13 @@
 package photos.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class PhotoLibrary {
+public class PhotoLibrary implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public static final String ADMIN_USERNAME = "admin";
     public static final String STOCK_USERNAME = "stock";
 
