@@ -21,6 +21,7 @@ import photos.model.User;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -171,6 +172,10 @@ public class Photos extends Application {
         return getUser(username) != null;
     }
 
+    public boolean isAdminUsername(String username) {
+        return username != null && PhotoLibrary.ADMIN_USERNAME.equalsIgnoreCase(username.trim());
+    }
+
     public List<Photo> getAlbumPhotos(String username, String albumName) {
         Album album = getAlbum(username, albumName);
         if (album == null) {
@@ -214,6 +219,137 @@ public class Photos extends Application {
         }
 
         return user.removePhotoFromAlbum(albumName, filePath);
+    }
+
+    public String updatePhotoCaption(String username, String albumName, String filePath, String caption) {
+        User user = getUser(username);
+        if (user == null) {
+            return "The selected user could not be found.";
+        }
+
+        return user.updatePhotoCaption(albumName, filePath, caption)
+                ? null
+                : "Unable to update the caption for the selected photo.";
+    }
+
+    public List<String> getTagTypes(String username) {
+        User user = getUser(username);
+        if (user == null) {
+            return List.of();
+        }
+        return user.getTagTypeNames();
+    }
+
+    public String addTagToPhoto(
+            String username,
+            String albumName,
+            String filePath,
+            String tagName,
+            String tagValue,
+            boolean singleValueIfNew
+    ) {
+        User user = getUser(username);
+        if (user == null) {
+            return "The selected user could not be found.";
+        }
+
+        User.TagAddResult result = user.addTagToPhoto(albumName, filePath, tagName, tagValue, singleValueIfNew);
+        return switch (result) {
+            case ADDED -> null;
+            case DUPLICATE -> "This photo already has that tag.";
+            case SINGLE_VALUE_CONFLICT -> "This tag type allows only one value on a photo.";
+            case INVALID_TAG -> "Enter both a tag type and a tag value.";
+            case PHOTO_NOT_FOUND -> "The selected photo could not be found.";
+        };
+    }
+
+    public boolean removeTagFromPhoto(String username, String albumName, String filePath, String tagName, String tagValue) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+
+        return user.removeTagFromPhoto(albumName, filePath, tagName, tagValue);
+    }
+
+    public List<String> getAlbumNames(String username) {
+        User user = getUser(username);
+        if (user == null) {
+            return List.of();
+        }
+
+        return user.getAlbums().stream()
+                .map(Album::getName)
+                .toList();
+    }
+
+    public String copyPhotoToAlbum(String username, String sourceAlbumName, String targetAlbumName, String filePath) {
+        User user = getUser(username);
+        if (user == null) {
+            return "The selected user could not be found.";
+        }
+
+        if (sourceAlbumName != null && sourceAlbumName.equalsIgnoreCase(targetAlbumName)) {
+            return "Choose a different album.";
+        }
+
+        return user.copyPhoto(sourceAlbumName, targetAlbumName, filePath)
+                ? null
+                : "Unable to copy the photo. The target album may already contain it.";
+    }
+
+    public String movePhotoToAlbum(String username, String sourceAlbumName, String targetAlbumName, String filePath) {
+        User user = getUser(username);
+        if (user == null) {
+            return "The selected user could not be found.";
+        }
+
+        if (sourceAlbumName != null && sourceAlbumName.equalsIgnoreCase(targetAlbumName)) {
+            return "Choose a different album.";
+        }
+
+        return user.movePhoto(sourceAlbumName, targetAlbumName, filePath)
+                ? null
+                : "Unable to move the photo. The target album may already contain it.";
+    }
+
+    public List<Photo> searchPhotosByDate(String username, LocalDate startDate, LocalDate endDate) {
+        User user = getUser(username);
+        if (user == null) {
+            return List.of();
+        }
+
+        return user.searchPhotosByDate(startDate, endDate).stream()
+                .sorted(Comparator.comparing(Photo::getDateTaken, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Photo::getFilePath, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public List<Photo> searchPhotosByTags(
+            String username,
+            String firstTagName,
+            String firstTagValue,
+            String secondTagName,
+            String secondTagValue,
+            boolean requireAll
+    ) {
+        User user = getUser(username);
+        if (user == null) {
+            return List.of();
+        }
+
+        return user.searchPhotosByTags(firstTagName, firstTagValue, secondTagName, secondTagValue, requireAll).stream()
+                .sorted(Comparator.comparing(Photo::getFilePath, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public boolean createAlbumFromPhotos(String username, String albumName, List<Photo> photos) {
+        User user = getUser(username);
+        if (user == null) {
+            return false;
+        }
+
+        return user.createAlbumFromPhotos(albumName, photos);
     }
 
     public String formatPhotoDate(LocalDateTime dateTime) {

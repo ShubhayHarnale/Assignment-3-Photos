@@ -42,7 +42,7 @@
                 <Region HBox.hgrow="ALWAYS" />
                 <Button mnemonicParsing="false" onAction="#handleSearch" text="Search" />
             </HBox>
-            <Label fx:id="selectionLabel" style="-fx-text-fill: #4b5563;" text="Select a sample album to preview create/rename/delete/open flows." wrapText="true" />
+            <Label fx:id="selectionLabel" style="-fx-text-fill: #4b5563;" text="Select an album to open or manage." wrapText="true" />
             <ListView fx:id="albumsListView" prefHeight="320.0" VBox.vgrow="ALWAYS">
                 <items>
                     <FXCollections fx:factory="observableArrayList">

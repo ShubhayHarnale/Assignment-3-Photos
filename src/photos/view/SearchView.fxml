@@ -98,7 +98,7 @@
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Results" />
                         <Button mnemonicParsing="false" onAction="#handleCreateAlbumFromResults" text="Create Album From Results" />
                     </HBox>
-                    <Label fx:id="resultsStatusLabel" style="-fx-text-fill: #4b5563;" text="Showing sample results." wrapText="true" />
+                    <Label fx:id="resultsStatusLabel" style="-fx-text-fill: #4b5563;" text="Run a search to see matching photos." wrapText="true" />
                     <ListView fx:id="resultsListView" prefHeight="360.0" VBox.vgrow="ALWAYS" />
                 </VBox>
             </HBox>
